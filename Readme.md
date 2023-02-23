@@ -34,4 +34,10 @@ you can provide custom homeservers, too.
 It will start with a full-sync of the room state, so depending on the size of
 your matrix account(s), this may take a moment.
 
+## Changelog
+
+**Unreleased**
+
+- Add support for matching up power_levels, needs matrix-org/matrix-rust-sdk#1568
+
 [ems tool]: https://ems.element.io/tools/matrix-migration

@@ -190,11 +190,50 @@ async fn main() -> anyhow::Result<()> {
 
 async fn ensure_power_levels(
     from_c: &Client,
-    username: OwnedUserId,
+    new_username: OwnedUserId,
     rooms: &Vec<&OwnedRoomId>,
 ) -> anyhow::Result<()> {
+    try_join_all(rooms.iter().enumerate().map(|(counter, room_id)| {
+        let from_c = from_c.clone();
+        let self_id = from_c.user_id().unwrap().to_owned();
+        let user_id = new_username.clone();
+        async move {
+            tokio::time::sleep(Duration::from_secs(counter.saturating_div(2) as u64)).await;
+            let Some(joined) = from_c.get_joined_room(&room_id) else {
+                return anyhow::Ok(());
+            };
+
+            let Some(me) = joined.get_member(&self_id).await? else {
+                warn!("{self_id} isn't member of {room_id}. Skipping power_level ensuring.");
+                return anyhow::Ok(())
+            };
+
+            let Some(new_acc) = joined.get_member(&user_id).await? else {
+                warn!("{user_id} isn't member of {room_id}. Skipping power_level ensuring.");
+                return anyhow::Ok(())
+            };
+
+            let my_power_level = me.power_level();
+
+            if my_power_level <= new_acc.power_level() {
+                info!("Power levels of {user_id} and {self_id} in {room_id} are fine.");
+                return anyhow::Ok(());
+            }
+
+            info!("Trying to adjust power_level of {user_id} in {room_id} to {my_power_level}.");
+
+            if let Err(e) = joined
+                .update_power_levels(vec![(&user_id.clone(), my_power_level.try_into().unwrap())])
+                .await
+            {
+                warn!("Couldn't update power levels for {user_id} in {room_id}: {e}");
+            }
+
+            Ok(())
+        }
+    }))
+    .await?;
     Ok(())
-    // unimplemented!()
 }
 
 async fn accept_invites(
@@ -230,7 +269,7 @@ async fn send_invites(
         let from_c = from_c.clone();
         let user_id = user_id.clone();
         async move {
-            tokio::time::sleep(Duration::from_secs(counter as u64)).await;
+            tokio::time::sleep(Duration::from_secs(counter.saturating_div(2) as u64)).await;
             let Some(joined) = from_c.get_joined_room(&room_id) else {
                         warn!("Can't invite user to {:}: not a member myself", room_id);
                         return Some(room_id.clone().to_owned());
