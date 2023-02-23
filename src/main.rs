@@ -143,17 +143,21 @@ async fn main() -> anyhow::Result<()> {
     let ensure_c = from_c.clone();
     let inviter_c = from_c.clone();
 
-    let (_, not_yet_accepted, remaining_invites) = try_join!(
+    let (_, not_yet_accepted, (remaining_invites, failed_invites)) = try_join!(
         async move { ensure_power_levels(&ensure_c, ensure_user, &already_invited).await },
         async move { accept_invites(&c_accept, &to_accept).await },
         async move {
             let to_invite = to_invite.clone();
-            send_invites(&inviter_c, &to_invite, to_user.clone()).await?;
+            let failed_invites = send_invites(&inviter_c, &to_invite, to_user.clone()).await?;
             ensure_power_levels(&inviter_c, to_user.clone(), &to_invite).await?;
-            Ok(to_invite
-                .into_iter()
-                .map(ToOwned::to_owned)
-                .collect::<Vec<_>>())
+            Ok((
+                to_invite
+                    .into_iter()
+                    .map(ToOwned::to_owned)
+                    .filter(|r| !failed_invites.contains(r))
+                    .collect::<Vec<_>>(),
+                failed_invites,
+            ))
         },
     )?;
 
@@ -163,11 +167,21 @@ async fn main() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
 
     info!("First invitation set done.");
-    while invites_awaiting.len() > 0 {
+    while !invites_awaiting.is_empty() {
         info!("Still {} rooms to go. Syncing up", invites_awaiting.len());
         to_sync_stream.next().await.expect("Sync stream broke")?;
         invites_awaiting = accept_invites(&to_c, &invites_awaiting.iter().collect()).await?;
     }
+
+    if !failed_invites.is_empty() {
+        warn!(
+            "Failed to invite to {:?}. See logs above for the reasons why",
+            failed_invites
+        );
+    }
+
+    to_c.logout().await?;
+    from_c.logout().await?;
 
     info!("-- All done! -- ");
 
@@ -211,15 +225,15 @@ async fn send_invites(
     from_c: &Client,
     rooms: &Vec<&OwnedRoomId>,
     user_id: OwnedUserId,
-) -> anyhow::Result<()> {
-    join_all(rooms.iter().enumerate().map(|(counter, room_id)| {
+) -> anyhow::Result<Vec<OwnedRoomId>> {
+    Ok(join_all(rooms.iter().enumerate().map(|(counter, room_id)| {
         let from_c = from_c.clone();
         let user_id = user_id.clone();
         async move {
             tokio::time::sleep(Duration::from_secs(counter as u64)).await;
             let Some(joined) = from_c.get_joined_room(&room_id) else {
                         warn!("Can't invite user to {:}: not a member myself", room_id);
-                        return
+                        return Some(room_id.clone().to_owned());
                     };
             info!(
                 "Inviting to {room_id} ({})",
@@ -227,10 +241,13 @@ async fn send_invites(
             );
             if let Err(e) = joined.invite_user_by_id(&user_id).await {
                 warn!("Inviting to {:} failed: {e}", room_id);
+                return Some(room_id.clone().to_owned());
             }
+            None
         }
     }))
-    .await;
-
-    Ok(())
+    .await
+    .into_iter()
+    .filter_map(|e| e)
+    .collect())
 }
