@@ -7,7 +7,7 @@ CLI to migrate one matrix account to a new one. Similar to [the EMS migrator][em
 3. it runs the operations async and is thus a lot faster
 
 _Note_:
-It currently only migrates the rooms listing, no user settings or profile data.
+It currently only migrates the rooms listing and power_levels, no user settings or profile data.
 
 ## Install and use
 
@@ -38,6 +38,6 @@ your matrix account(s), this may take a moment.
 
 **Unreleased**
 
-- Add support for matching up power_levels, needs matrix-org/matrix-rust-sdk#1568
+- Add support for matching up `power_levels`, needs latest matrix-rust-sdk-git
 
 [ems tool]: https://ems.element.io/tools/matrix-migration

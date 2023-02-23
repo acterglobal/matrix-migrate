@@ -14,6 +14,6 @@ clap = { version = "4.1.6", features = ["derive", "env"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] } 
 
 [dependencies.matrix-sdk]
-git = "https://github.com/gnunicorn/matrix-rust-sdk"
-ref = "3750965367"
+git = "https://github.com/matrix-org/matrix-rust-sdk"
+ref = "e162c99"
 features = ["anyhow"]
