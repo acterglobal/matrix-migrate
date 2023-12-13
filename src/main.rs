@@ -63,10 +63,10 @@ async fn main() -> anyhow::Result<()> {
     info!("Logging in {:}", args.from_user);
 
     if args.from_user_password.is_none() {
-        info!("No password given, trying SSO authtentication.");
+        info!("No password provided, trying SSO authtentication.");
         from_c
             .login_sso(|sso_url| async move {
-                println!("Open this URL in a web browser {:}", sso_url);
+                info!("Open this URL in a web browser {:}", sso_url);
                 Ok(())
             })
             .initial_device_display_name("matrix-migrate")
@@ -92,9 +92,9 @@ async fn main() -> anyhow::Result<()> {
     info!("Logging in {:}", args.to_user);
 
     if args.to_user_password.is_none() {
-        info!("No password given, trying SSO authtentication.");
+        info!("No password provided, trying SSO authtentication.");
         to_c.login_sso(|sso_url| async move {
-            println!("Open this URL in a web browser {:}", sso_url);
+            info!("Open this URL in a web browser {:}", sso_url);
             Ok(())
         })
         .initial_device_display_name("matrix-migrate")
