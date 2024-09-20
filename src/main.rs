@@ -22,7 +22,7 @@ struct Args {
 
     /// Password of the account to migrate from
     #[arg(long = "from-pw", env = "FROM_PASSWORD")]
-    from_user_password: String,
+    from_user_password: Option<String>,
 
     /// Custom homeserver, if not defined discovery is used
     #[arg(long, env = "FROM_HOMESERVER")]
@@ -34,7 +34,7 @@ struct Args {
 
     /// Password of the account to migrate from
     #[arg(long = "to-pw", env = "TO_PASSWORD")]
-    to_user_password: String,
+    to_user_password: Option<String>,
 
     /// Custom homeserver, if not defined discovery is used
     #[arg(long, env = "TO_HOMESERVER")]
@@ -62,10 +62,22 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Logging in {:}", args.from_user);
 
-    from_c
-        .login_username(args.from_user, &args.from_user_password)
-        .send()
-        .await?;
+    if args.from_user_password.is_none() {
+        info!("No password provided, trying SSO authtentication.");
+        from_c
+            .login_sso(|sso_url| async move {
+                info!("Open this URL in a web browser {:}", sso_url);
+                Ok(())
+            })
+            .initial_device_display_name("matrix-migrate")
+            .send()
+            .await?;
+    } else {
+        from_c
+            .login_username(args.from_user, &args.from_user_password.unwrap())
+            .send()
+            .await?;
+    };
 
     let to_cb = Client::builder().user_agent("matrix-migrate/1");
     let to_c = if let Some(h) = args.to_homeserver {
@@ -79,9 +91,20 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Logging in {:}", args.to_user);
 
-    to_c.login_username(args.to_user, &args.to_user_password)
+    if args.to_user_password.is_none() {
+        info!("No password provided, trying SSO authtentication.");
+        to_c.login_sso(|sso_url| async move {
+            info!("Open this URL in a web browser {:}", sso_url);
+            Ok(())
+        })
+        .initial_device_display_name("matrix-migrate")
         .send()
         .await?;
+    } else {
+        to_c.login_username(args.to_user, &args.to_user_password.unwrap())
+            .send()
+            .await?;
+    }
 
     info!("All logged in. Syncing...");
 

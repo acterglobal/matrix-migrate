@@ -5,6 +5,7 @@ CLI to migrate one matrix account to a new one. Similar to [the EMS migrator][em
 1. is a nice little CLI tool, based on `matrix-rust-sdk`
 2. allows for restarts (refreshes at the beginning)
 3. it runs the operations async and is thus a lot faster
+4. SSO authentication is supported
 
 _Note_:
 It currently only migrates the rooms listing and power_levels, no user settings or profile data.
@@ -26,10 +27,15 @@ matrix-migrate
 
 ### Usage note
 
-It requires both the user and password for the user `from` and `to` either as
-command line parameters, or preferably as environment variables (`FROM_USER=`,
-`FROM_PASSWORD`). It uses matrix discovery but if that doesn't work for you
-you can provide custom homeservers, too.
+Password authentication requires both the user and password for the user `from`
+and `to` either as command line parameters, or preferably as environment
+variables (`FROM_USER=`, `FROM_PASSWORD`).
+
+If no `from` and/or `to` password provided it will try login with servers's
+SSO.
+
+It uses matrix discovery but if that doesn't work for you, you can provide
+custom homeservers, too.
 
 It will start with a full-sync of the room state, so depending on the size of
 your matrix account(s), this may take a moment.

@@ -11,9 +11,9 @@ env_logger = "0.10.0"
 log = "0.4.8"
 futures = "0.3.26"
 clap = { version = "4.1.6", features = ["derive", "env"] }
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] } 
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
 
 [dependencies.matrix-sdk]
 git = "https://github.com/matrix-org/matrix-rust-sdk"
 ref = "e162c99"
-features = ["anyhow"]
+features = ["anyhow", "sso-login"]
