@@ -40,6 +40,10 @@ struct Args {
     #[arg(long, env = "TO_HOMESERVER")]
     to_homeserver: Option<OwnedServerName>,
 
+    /// Custom timeout for syncing, default is 10 secs
+    #[arg(long, env = "TIMEOUT")]
+    timeout: Option<u64>,
+
     /// Custom logging info
     #[arg(long, env = "RUST_LOG", default_value = "matrix_migrate=info")]
     log: String,
@@ -85,11 +89,16 @@ async fn main() -> anyhow::Result<()> {
 
     info!("All logged in. Syncing...");
 
+    let sync_settings = if let Some(s) = args.timeout {
+        SyncSettings::default().timeout(Duration::from_secs(s))
+    } else {
+        SyncSettings::default()
+    };
     let to_c_stream = to_c.clone();
-    let to_sync_stream = to_c_stream.sync_stream(SyncSettings::default()).await;
+    let to_sync_stream = to_c_stream.sync_stream(sync_settings.clone()).await;
     pin_mut!(to_sync_stream);
 
-    try_join!(from_c.sync_once(SyncSettings::default()), async {
+    try_join!(from_c.sync_once(sync_settings.clone()), async {
         to_sync_stream.next().await.unwrap()
     })?;
 

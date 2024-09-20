@@ -34,6 +34,7 @@ you can provide custom homeservers, too.
 It will start with a full-sync of the room state, so depending on the size of
 your matrix account(s), this may take a moment.
 
+Optional `timeout` (in seconds) can be added.
 ## Changelog
 
 **Unreleased**
