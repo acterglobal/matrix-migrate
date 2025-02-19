@@ -15,7 +15,7 @@ You need a recent [Rust] installation. Then you can either clone the repository
 and use `cargo run` or use cargo-install:
 
 ```
-cargo install https://matrix.org/acterglobal/matrix-migrate
+cargo install --git https://github.com/acterglobal/matrix-migrate
 ```
 
 and then can run it by just doing
